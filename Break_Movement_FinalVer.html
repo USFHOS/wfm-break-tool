@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Break &amp; Movement Requests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --teal:#0891b2;--teal-dk:#0e7490;
+    --slate:#0f172a;--slate-m:#334155;--slate-s:#64748b;
+    --border:#e2e8f0;--bg:#f8fafc;--card:#fff;
+    --ok:#166534;--ok-bg:#f0fdf4;--ok-b:#86efac;
+    --err:#dc2626;--err-bg:#fff5f5;--err-b:#fca5a5;
+    --warn:#854d0e;--warn-bg:#fef9c3;--warn-b:#fde047;
+    --r:10px;--sh:0 1px 4px rgba(0,0,0,.07);
+  }
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--slate);min-height:100vh;font-size:15px}
+  input,select,button,textarea{font-family:inherit}
+  /* header */
+  .hdr{background:var(--card);border-bottom:1px solid var(--border);box-shadow:var(--sh);position:sticky;top:0;z-index:100}
+  .hdr-in{max-width:960px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-ic{width:40px;height:40px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff}
+  .logo-t{font-size:19px;font-weight:800;letter-spacing:-.03em}
+  .logo-s{font-size:12px;color:var(--slate-s);margin-top:1px}
+  .clock-box{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px}
+  .clock-t{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;letter-spacing:.05em}
+  /* main */
+  .main{max-width:960px;margin:0 auto;padding:28px 24px}
+  /* tabs */
+  .tabs{display:flex;gap:4px;background:#f1f5f9;padding:4px;border-radius:11px;max-width:380px;margin-bottom:28px}
+  .tab{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--slate-s);transition:all 160ms}
+  .tab.on{background:var(--card);color:var(--teal);box-shadow:0 1px 5px rgba(0,0,0,.12)}
+  .bdg{background:var(--teal);color:#fff;border-radius:999px;font-size:11px;padding:1px 7px;font-weight:700}
+  /* card */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px;box-shadow:var(--sh)}
+  .card-t{font-size:17px;font-weight:800;letter-spacing:-.02em}
+  .card-s{font-size:13px;color:var(--slate-s);margin-top:3px;margin-bottom:22px}
+  /* form */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+  @media(max-width:540px){.grid2{grid-template-columns:1fr}}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:5px;color:var(--slate-m)}
+  .field input,.field select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-size:14px;color:var(--slate);transition:border 150ms;outline:none}
+  .field input:focus,.field select:focus{outline:2px solid var(--teal);outline-offset:1px}
+  .field input::placeholder{color:#94a3b8}
+  .ferr{color:var(--err);font-size:12px;margin-top:4px;display:none}
+  .field.bad input,.field.bad select{border-color:var(--err)}
+  .field.bad .ferr{display:block}
+  .info-pill{display:flex;align-items:center;gap:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:9px 13px;font-size:13px;color:#0369a1;font-weight:600;margin-bottom:16px}
+  /* buttons */
+  .btn-p{padding:10px 26px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;transition:background 150ms}
+  .btn-p:hover{background:var(--teal-dk)}
+  .btn-o{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--border);border-radius:7px;background:var(--card);font-size:13px;font-weight:600;cursor:pointer;color:var(--slate-m)}
+  .btn-o:hover{background:var(--bg)}
+  .btn-d{padding:6px 8px;border:1px solid var(--err-b);border-radius:7px;background:var(--err-bg);cursor:pointer;color:var(--err);display:flex;align-items:center}
+  .btn-d:hover{background:#fee2e2}
+  .btn-sv{padding:7px 16px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .btn-sv:hover{background:var(--teal-dk)}
+  /* toast */
+  .toast{display:none;align-items:center;gap:9px;background:var(--ok-bg);border:1px solid var(--ok-b);border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:14px;color:var(--ok);font-weight:600}
+  .toast.show{display:flex}
+  /* dashboard */
+  .filter-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  .filter-btns{display:flex;gap:5px;flex-wrap:wrap}
+  .fbtn{padding:6px 14px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--slate-s);transition:all 120ms}
+  .fbtn.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .exp-btns{display:flex;gap:7px}
+  /* req cards */
+  .req-list{display:flex;flex-direction:column;gap:10px}
+  .req-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+  .req-card.rej{border-color:var(--err-b)}
+  .req-top{padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .req-id{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate-s)}
+  .req-main{display:flex;gap:10px;margin-top:5px;flex-wrap:wrap;align-items:center}
+  .req-lob{font-size:14px;font-weight:800}
+  .req-dot{color:var(--border)}
+  .req-det{font-size:13px;color:var(--slate-m)}
+  .req-meta{display:flex;gap:14px;margin-top:7px;flex-wrap:wrap}
+  .req-meta span{font-size:12px;color:var(--slate-s)}
+  .req-meta strong{font-family:'IBM Plex Mono',monospace;color:var(--slate-m)}
+  .req-act{display:flex;align-items:center;gap:9px;flex-shrink:0}
+  .req-act select{padding:6px 9px;border-radius:7px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:var(--bg)}
+  /* status badges */
+  .sbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid}
+  .s-pend{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-b)}
+  .s-appr{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-b)}
+  .s-rej{background:var(--err-bg);color:var(--err);border-color:var(--err-b)}
+  /* rta */
+  .rta-sec{border-top:1px solid var(--err-b);background:#fff8f8;padding:14px 20px}
+  .rta-lbl{font-size:11px;font-weight:800;color:var(--err);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;letter-spacing:.06em;text-transform:uppercase}
+  .rta-edit{font-size:12px;font-weight:600;color:var(--err);background:none;border:1px solid var(--err-b);border-radius:6px;padding:3px 10px;cursor:pointer;display:flex;align-items:center;gap:4px}
+  .rta-edit:hover{background:var(--err-bg)}
+  .rta-saved{font-size:13px;color:var(--slate-m);background:#fff;border:1px solid var(--err-b);border-radius:7px;padding:9px 13px;white-space:pre-wrap;line-height:1.5}
+  .rta-none{font-size:13px;color:#94a3b8;font-style:italic}
+  .rta-row{display:flex;gap:8px;align-items:flex-start}
+  .rta-ta{flex:1;padding:9px 12px;border:1px solid var(--err-b);border-radius:7px;font-size:13px;color:var(--slate);background:#fff;resize:vertical;min-height:68px;line-height:1.5;font-family:inherit}
+  .rta-ta::placeholder{color:#94a3b8}
+  .rta-ta:focus{outline:2px solid var(--err);outline-offset:1px}
+  /* stats */
+  .stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .sp{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:8px;border:1px solid;font-size:13px;font-weight:700}
+  .sp-all{background:#f8fafc;border-color:var(--border);color:var(--slate-m)}
+  .sp-pend{background:var(--warn-bg);border-color:var(--warn-b);color:var(--warn)}
+  .sp-appr{background:var(--ok-bg);border-color:var(--ok-b);color:var(--ok)}
+  .sp-rej{background:var(--err-bg);border-color:var(--err-b);color:var(--err)}
+  .empty{text-align:center;padding:52px 24px;background:var(--bg);border-radius:var(--r);border:1px dashed var(--border);color:var(--slate-s);font-size:15px}
+  /* modal */
+  .modal-ov{display:none;position:fixed;inset:0;z-index:999;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px}
+  .modal-ov.show{display:flex;animation:fIn 130ms ease}
+  @keyframes fIn{from{opacity:0}to{opacity:1}}
+  .modal-box{background:var(--card);border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.22);padding:32px 28px;width:100%;max-width:400px;animation:sUp 170ms ease}
+  @keyframes sUp{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-ic{width:52px;height:52px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--teal);margin-bottom:18px}
+  .modal-t{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .modal-s{font-size:13px;color:var(--slate-s);margin-top:4px;margin-bottom:18px;line-height:1.5}
+  .modal-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:20px;border:1px solid}
+  .pw-wrap{position:relative;margin-bottom:6px}
+  .pw-inp{width:100%;padding:11px 44px 11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;color:var(--slate);background:var(--bg);letter-spacing:.06em;font-family:inherit;outline:none;transition:border 150ms}
+  .pw-inp:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(8,145,178,.12)}
+  .pw-inp.shake{animation:shk 300ms ease;border-color:var(--err)!important}
+  @keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+  .pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate-s);padding:4px;display:flex;align-items:center}
+  .pw-err{font-size:12px;color:var(--err);font-weight:600;min-height:20px;margin-bottom:14px}
+  .modal-btns{display:flex;gap:10px}
+  .mb-cancel{flex:1;padding:11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:14px;font-weight:700;cursor:pointer;color:var(--slate-m)}
+  .mb-cancel:hover{background:#f1f5f9}
+  .mb-ok{flex:1;padding:11px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+  .mb-ok:hover{background:var(--teal-dk)}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-ov" id="pw-modal">
+  <div class="modal-box">
+    <div class="modal-ic">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div class="modal-t">RTA Access Required</div>
+    <p class="modal-s">This action is restricted to authorised RTA staff. Enter the password to continue.</p>
+    <div class="modal-pill s-rej" id="pw-action-pill"></div>
+    <div class="pw-wrap">
+      <input class="pw-inp" id="pw-inp" type="password" placeholder="Enter RTA password…" autocomplete="off"/>
+      <button class="pw-eye" id="pw-eye" tabindex="-1">
+        <svg id="eye-on" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="eye-off" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <div class="pw-err" id="pw-err"></div>
+    <div class="modal-btns">
+      <button class="mb-cancel" id="pw-cancel">Cancel</button>
+      <button class="mb-ok" id="pw-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="logo">
+      <div class="logo-ic">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div>
+        <div class="logo-t">Break Requests</div>
+        <div class="logo-s">Movement &amp; Break Management System</div>
+      </div>
+    </div>
+    <div class="clock-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="clock-t" id="clock">--:--:--</span>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab on" id="tab-submit" onclick="showTab('submit')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Submit Request
+    </button>
+    <button class="tab" id="tab-dashboard" onclick="showTab('dashboard')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      View Requests <span class="bdg" id="pending-badge" style="display:none"></span>
+    </button>
+  </div>
+
+  <!-- Submit form -->
+  <div id="page-submit">
+    <div class="card" style="max-width:680px">
+      <div class="card-t">Submit Break Request</div>
+      <p class="card-s">Fill in the details below to request a break or movement.</p>
+      <div class="toast" id="submit-toast">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Request submitted successfully — visible in the dashboard.
+      </div>
+      <div class="grid2">
+        <div class="field" id="f-lob">
+          <label>Line of Business</label>
+          <select id="inp-lob" onchange="clrErr('f-lob')">
+            <option value="" disabled selected hidden>Select LOB…</option>
+            <option value="guest-assistance">Guest Assistance</option>
+            <option value="sales">Sales</option>
+            <option value="french-canadian">French Canadian</option>
+            <option value="customer-service">Customer Service</option>
+            <option value="diamond">Diamond</option>
+            <option value="diamond-reserve">Diamond Reserve</option>
+          </select>
+          <div class="ferr">Line of Business is required</div>
+        </div>
+        <div class="field" id="f-break">
+          <label>Break Type</label>
+          <select id="inp-break" onchange="clrErr('f-break');updateDuration()">
+            <option value="" disabled selected hidden>Select break type…</option>
+            <option value="break-1" data-dur="15">Break 1</option>
+            <option value="break-3" data-dur="15">Break 3</option>
+            <option value="break-2" data-dur="30">Lunch (Break 2)</option>
+          </select>
+          <div class="ferr">Break Type is required</div>
+        </div>
+      </div>
+      <div class="info-pill" id="dur-pill" style="display:none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Duration: <strong id="dur-text"></strong>
+      </div>
+      <div class="grid2">
+        <div class="field" id="f-emp">
+          <label>Employee ID</label>
+          <input type="text" id="inp-emp" placeholder="e.g. EMP12345" autocomplete="off" spellcheck="false" oninput="clrErr('f-emp')"/>
+          <div class="ferr">Employee ID or Sign ID is required</div>
+        </div>
+        <div class="field" id="f-sign">
+          <label>Sign ID (optional if Employee ID given)</label>
+          <input type="text" id="inp-sign" placeholder="e.g. SIGN001" autocomplete="off" spellcheck="false" oninput="clrErr('f-sign')"/>
+          <div class="ferr"></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field" id="f-reason">
+          <label>Reason</label>
+          <select id="inp-reason" onchange="clrErr('f-reason')">
+            <option value="" disabled selected hidden>Select reason…</option>
+            <option value="stuck-in-call">Stuck in Call</option>
+            <option value="restroom">Restroom</option>
+            <option value="meal">Meal</option>
+            <option value="personal">Personal</option>
+            <option value="training">Training</option>
+            <option value="meeting">Meeting</option>
+            <option value="other">Other</option>
+          </select>
+          <div class="ferr">Reason is required</div>
+        </div>
+        <div class="field" id="f-time">
+          <label>Requested Time</label>
+          <select id="inp-time" onchange="clrErr('f-time')">
+            <option value="" disabled selected hidden>Select time…</option>
+          </select>
+          <div class="ferr">Requested Time is required</div>
+        </div>
+      </div>
+      <button class="btn-p" onclick="submitRequest()" style="margin-top:8px">Submit Request</button>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="page-dashboard" style="display:none">
+    <div class="stats">
+      <div class="sp sp-all">&#x1F4CB; Total: <strong id="ct-total">0</strong></div>
+      <div class="sp sp-pend">&#9200; Pending: <strong id="ct-pend">0</strong></div>
+      <div class="sp sp-appr">&#10003; Approved: <strong id="ct-appr">0</strong></div>
+      <div class="sp sp-rej">&#9888; Rejected: <strong id="ct-rej">0</strong></div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-btns" id="filter-btns">
+        <button class="fbtn on" onclick="setFilter('all')">All</button>
+        <button class="fbtn" onclick="setFilter('pending')">Pending</button>
+        <button class="fbtn" onclick="setFilter('approved')">Approved</button>
+        <button class="fbtn" onclick="setFilter('rejected')">Rejected</button>
+      </div>
+      <div class="exp-btns">
+        <button class="btn-o" onclick="exportCSV()">&#x2B07; CSV</button>
+        <button class="btn-o" onclick="exportJSON()">&#x2B07; JSON</button>
+      </div>
+    </div>
+    <div id="req-list"></div>
+  </div>
+</main>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+const PASSWORD = "RTA2026"; // ← change to your team's password
+
+const LOB_LABELS = {
+  "guest-assistance":"Guest Assistance","sales":"Sales",
+  "french-canadian":"French Canadian","customer-service":"Customer Service",
+  "diamond":"Diamond","diamond-reserve":"Diamond Reserve"
+};
+const BREAK_LABELS  = {"break-1":"Break 1","break-3":"Break 3","break-2":"Lunch (Break 2)"};
+const REASON_LABELS = {
+  "stuck-in-call":"Stuck in Call","restroom":"Restroom","meal":"Meal",
+  "personal":"Personal","training":"Training","meeting":"Meeting","other":"Other"
+};
+
+const KEY = "wfm_breakRequests";
+let requests = [];
+try { requests = JSON.parse(localStorage.getItem(KEY)||"[]"); } catch(e){}
+const persist = () => localStorage.setItem(KEY, JSON.stringify(requests));
+
+let currentFilter = "all";
+let modalAction = null; // {type, reqId, newStatus}
+
+// ── Clock ─────────────────────────────────────────────────────────────────
+function tickClock() {
+  const n = new Date();
+  document.getElementById("clock").textContent =
+    String(n.getHours()).padStart(2,"0")+":"+
+    String(n.getMinutes()).padStart(2,"0")+":"+
+    String(n.getSeconds()).padStart(2,"0");
+}
+tickClock(); setInterval(tickClock, 1000);
+
+// ── Time slots ────────────────────────────────────────────────────────────
+(function(){
+  const sel = document.getElementById("inp-time");
+  for(let h=0;h<24;h++) for(let m=0;m<60;m+=30){
+    const t = String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+    sel.innerHTML += '<option value="'+t+'">'+t+'</option>';
+  }
+})();
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.getElementById("page-submit").style.display    = name==="submit"    ? "" : "none";
+  document.getElementById("page-dashboard").style.display = name==="dashboard" ? "" : "none";
+  document.getElementById("tab-submit").className    = "tab"+(name==="submit"    ? " on" : "");
+  document.getElementById("tab-dashboard").className = "tab"+(name==="dashboard" ? " on" : "");
+  if(name==="dashboard") renderDashboard();
+}
+
+// ── Form helpers ──────────────────────────────────────────────────────────
+function clrErr(fieldId) {
+  document.getElementById(fieldId).classList.remove("bad");
+}
+function setErr(fieldId) {
+  document.getElementById(fieldId).classList.add("bad");
+}
+function updateDuration() {
+  const sel = document.getElementById("inp-break");
+  const opt = sel.options[sel.selectedIndex];
+  const dur = opt && opt.dataset.dur;
+  const pill = document.getElementById("dur-pill");
+  if(dur){ pill.style.display="flex"; document.getElementById("dur-text").textContent=dur+" minutes"; }
+  else { pill.style.display="none"; }
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────
+function submitRequest() {
+  const lob   = document.getElementById("inp-lob").value;
+  const bt    = document.getElementById("inp-break").value;
+  const emp   = document.getElementById("inp-emp").value.trim();
+  const sign  = document.getElementById("inp-sign").value.trim();
+  const reason= document.getElementById("inp-reason").value;
+  const time  = document.getElementById("inp-time").value;
+  const sel   = document.getElementById("inp-break");
+  const dur   = sel.options[sel.selectedIndex]&&sel.options[sel.selectedIndex].dataset.dur||"";
+
+  let ok = true;
+  if(!lob)          { setErr("f-lob");    ok=false; }
+  if(!bt)           { setErr("f-break");  ok=false; }
+  if(!emp&&!sign)   { setErr("f-emp");    ok=false; }
+  if(!reason)       { setErr("f-reason"); ok=false; }
+  if(!time)         { setErr("f-time");   ok=false; }
+  if(!ok) return;
+
+  requests.unshift({
+    id:"REQ-"+Date.now(), lob, breakType:bt, duration:dur,
+    employeeId:emp||"N/A", signId:sign||"N/A",
+    reason, requestedTime:time,
+    timestamp:new Date().toISOString(), status:"pending", rtaComment:""
+  });
+  persist();
+
+  // reset form
+  document.getElementById("inp-lob").value="";
+  document.getElementById("inp-break").value="";
+  document.getElementById("inp-emp").value="";
+  document.getElementById("inp-sign").value="";
+  document.getElementById("inp-reason").value="";
+  document.getElementById("inp-time").value="";
+  document.getElementById("dur-pill").style.display="none";
+
+  const toast = document.getElementById("submit-toast");
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),3500);
+
+  updateBadge();
+  showTab("dashboard");
+}
+
+// ── Badge ─────────────────────────────────────────────────────────────────
+function updateBadge() {
+  const n = requests.filter(r=>r.status==="pending").length;
+  const b = document.getElementById("pending-badge");
+  b.textContent = n; b.style.display = n ? "" : "none";
+}
+updateBadge();
+
+// ── Dashboard render ──────────────────────────────────────────────────────
+function renderDashboard() {
+  const filtered = currentFilter==="all" ? requests : requests.filter(r=>r.status===currentFilter);
+  document.getElementById("ct-total").textContent = requests.length;
+  document.getElementById("ct-pend").textContent  = requests.filter(r=>r.status==="pending").length;
+  document.getElementById("ct-appr").textContent  = requests.filter(r=>r.status==="approved").length;
+  document.getElementById("ct-rej").textContent   = requests.filter(r=>r.status==="rejected").length;
+
+  const list = document.getElementById("req-list");
+  if(!filtered.length){
+    list.innerHTML='<div class="empty"><div style="font-size:36px;margin-bottom:10px">&#x1F4ED;</div>No '+(currentFilter==="all"?"requests":currentFilter+" requests")+' found.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(req=>{
+    const badge = {
+      pending: '<span class="sbadge s-pend">&#9200; Pending</span>',
+      approved:'<span class="sbadge s-appr">&#10003; Approved</span>',
+      rejected:'<span class="sbadge s-rej">&#9888; Rejected</span>',
+    }[req.status]||"";
+
+    const rta = req.status==="rejected" ? `
+      <div class="rta-sec" id="rta-${req.id}">
+        <div class="rta-lbl">
+          <span>&#9888; RTA Comment</span>
+          <button class="rta-edit" onclick="editRTA('${req.id}')">${req.rtaComment?"&#9998; Edit":"+ Add"}</button>
+        </div>
+        ${req.rtaComment
+          ? `<div class="rta-saved">${esc(req.rtaComment)}</div>`
+          : `<div class="rta-none">No comment added yet.</div>`}
+      </div>` : "";
+
+    return `
+      <div class="req-card${req.status==="rejected"?" rej":""}" id="card-${req.id}">
+        <div class="req-top">
+          <div style="flex:1;min-width:0">
+            <div class="req-id">${req.id}</div>
+            <div class="req-main">
+              <span class="req-lob">${LOB_LABELS[req.lob]||req.lob}</span>
+              <span class="req-dot"> &middot; </span>
+              <span class="req-det">${BREAK_LABELS[req.breakType]||req.breakType} (${req.duration}min)</span>
+              <span class="req-dot"> &middot; </span>
+              <span class="req-det">${REASON_LABELS[req.reason]||req.reason}</span>
+            </div>
+            <div class="req-meta">
+              <span>&#x23F0; <strong>${req.requestedTime}</strong></span>
+              ${req.employeeId!=="N/A"?`<span>&#x1F464; EMP: <strong>${req.employeeId}</strong></span>`:""}
+              ${req.signId!=="N/A"?`<span>&#x1FAAA; Sign: <strong>${req.signId}</strong></span>`:""}
+              <span style="color:#94a3b8">${new Date(req.timestamp).toLocaleString()}</span>
+            </div>
+          </div>
+          <div class="req-act">
+            ${badge}
+            <select onchange="changeStatus('${req.id}',this)">
+              <option value="pending"  ${req.status==="pending" ?"selected":""}>Pending</option>
+              <option value="approved" ${req.status==="approved"?"selected":""}>Approved</option>
+              <option value="rejected" ${req.status==="rejected"?"selected":""}>Rejected</option>
+            </select>
+            <button class="btn-d" onclick="askDelete('${req.id}')" title="Delete">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+          </div>
+        </div>
+        ${rta}
+      </div>`;
+  }).join("");
+}
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll(".fbtn").forEach((b,i)=>{
+    b.className="fbtn"+(["all","pending","approved","rejected"][i]===f?" on":"");
+  });
+  renderDashboard();
+}
+
+// ── RTA comment inline editing ────────────────────────────────────────────
+function editRTA(id) {
+  const req = requests.find(r=>r.id===id);
+  if(!req) return;
+  const sec = document.getElementById("rta-"+id);
+  sec.innerHTML = `
+    <div class="rta-lbl"><span>&#9888; RTA Comment</span></div>
+    <div class="rta-row">
+      <textarea class="rta-ta" id="rta-ta-${id}" placeholder="Type a comment explaining the rejection…">${esc(req.rtaComment||"")}</textarea>
+      <button class="btn-sv" onclick="saveRTA('${id}')">Save</button>
+    </div>`;
+  const ta = document.getElementById("rta-ta-"+id);
+  ta.focus();
+  ta.addEventListener("keydown", e=>{ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)) saveRTA(id); });
+}
+
+function saveRTA(id) {
+  const ta = document.getElementById("rta-ta-"+id);
+  if(!ta) return;
+  const val = ta.value.trim();
+  const idx = requests.findIndex(r=>r.id===id);
+  if(idx>-1){ requests[idx].rtaComment=val; persist(); }
+  renderDashboard();
+}
+
+// ── Password modal ────────────────────────────────────────────────────────
+function openModal(action) {
+  modalAction = action;
+  const labels = {approve:"Approve Request",reject:"Reject Request",delete:"Delete Request"};
+  document.getElementById("pw-action-pill").textContent = labels[action.type]||"Confirm";
+  document.getElementById("pw-inp").value = "";
+  document.getElementById("pw-err").textContent = "";
+  document.getElementById("pw-inp").classList.remove("shake");
+  document.getElementById("pw-modal").classList.add("show");
+  setTimeout(()=>document.getElementById("pw-inp").focus(), 120);
+}
+function closeModal() {
+  document.getElementById("pw-modal").classList.remove("show");
+  // revert any pending select visual change
+  if(modalAction && modalAction.prevStatus) {
+    const card = document.getElementById("card-"+modalAction.reqId);
+    if(card){
+      const sel = card.querySelector("select");
+      if(sel) sel.value = modalAction.prevStatus;
+    }
+  }
+  modalAction = null;
+}
+function confirmModal() {
+  const pw = document.getElementById("pw-inp").value;
+  if(pw !== PASSWORD) {
+    document.getElementById("pw-err").textContent = "Incorrect password — please try again.";
+    const inp = document.getElementById("pw-inp");
+    inp.classList.add("shake"); inp.value="";
+    setTimeout(()=>{ inp.classList.remove("shake"); inp.focus(); }, 350);
+    return;
+  }
+  if(!modalAction) return;
+  if(modalAction.type==="delete") {
+    requests = requests.filter(r=>r.id!==modalAction.reqId);
+  } else {
+    const idx = requests.findIndex(r=>r.id===modalAction.reqId);
+    if(idx>-1) requests[idx].status = modalAction.newStatus;
+  }
+  persist(); updateBadge();
+  document.getElementById("pw-modal").classList.remove("show");
+  modalAction = null;
+  renderDashboard();
+}
+
+// modal eye toggle
+document.getElementById("pw-eye").addEventListener("click", function(){
+  const inp = document.getElementById("pw-inp");
+  const showing = inp.type==="text";
+  inp.type = showing ? "password" : "text";
+  document.getElementById("eye-on").style.display  = showing ? "" : "none";
+  document.getElementById("eye-off").style.display = showing ? "none" : "";
+});
+document.getElementById("pw-cancel").addEventListener("click", closeModal);
+document.getElementById("pw-ok").addEventListener("click", confirmModal);
+document.getElementById("pw-inp").addEventListener("keydown", e=>{
+  if(e.key==="Enter") confirmModal();
+  if(e.key==="Escape") closeModal();
+});
+document.getElementById("pw-modal").addEventListener("click", e=>{
+  if(e.target===document.getElementById("pw-modal")) closeModal();
+});
+
+// ── Status change ─────────────────────────────────────────────────────────
+function changeStatus(id, sel) {
+  const newStatus = sel.value;
+  const req = requests.find(r=>r.id===id);
+  if(!req || newStatus===req.status) return;
+  openModal({type: newStatus==="approved"?"approve":"reject", reqId:id, newStatus, prevStatus:req.status});
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+function askDelete(id) {
+  openModal({type:"delete", reqId:id});
+}
+
+// ── Export ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const filtered = currentFilter==="all"?requests:requests.filter(r=>r.status===currentFilter);
+  const hdr = ["Request ID","LOB","Break Type","Duration","Employee ID","Sign ID","Reason","Requested Time","Submitted At","Status","RTA Comment"];
+  const rows = filtered.map(r=>[r.id,LOB_LABELS[r.lob]||r.lob,BREAK_LABELS[r.breakType]||r.breakType,
+    r.duration+"min",r.employeeId,r.signId,REASON_LABELS[r.reason]||r.reason,r.requestedTime,
+    new Date(r.timestamp).toLocaleString(),r.status,r.rtaComment||""].map(c=>'"'+c+'"').join(","));
+  dl([hdr.join(","),...rows].join("\n"),"text/csv","break-requests-"+today()+".csv");
+}
+function exportJSON() {
+  const filtered = currentFilter==="all"?requests:requests.filter(r=>r.status===currentFilter);
+  dl(JSON.stringify(filtered,null,2),"application/json","break-requests-"+today()+".json");
+}
+function today(){ return new Date().toISOString().slice(0,10); }
+function dl(content,type,filename){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=filename; a.click();
+}
+</script>
+</body>
+</html>
